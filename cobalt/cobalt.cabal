@@ -1,0 +1,64 @@
+cabal-version:      3.0
+name:               cobalt
+version:            0.1.0
+synopsis:           localCobalt — Prolog-to-x86-64 compiler via functor crystal expansion + LiquidHaskell library
+license:            MIT
+author:             SNAPKITTYWEST / Ahmad Ali Parr
+maintainer:         jessicalw34@gmail.com
+build-type:         Simple
+
+common deps
+  build-depends:
+    base            >= 4.14 && < 5,
+    bytestring      >= 0.11,
+    containers      >= 0.6,
+    text            >= 1.2,
+    liquid-fixpoint >= 0.8
+
+library
+  import:           deps
+  exposed-modules:
+    -- Cobalt compiler core
+    Cobalt.Dense
+    Cobalt.Trilock
+    X86BatchAssembler
+    MagicCobalt
+    -- LiquidOps kernel IR
+    LiquidOps.NAND
+    LiquidOps.Kernel
+    LiquidOps.KernelFull
+    -- ISA family (prototype → educational, no external deps)
+    ISA.Core
+    ISA.Macro
+    ISA.Program
+    ISA.Examples
+    -- Core math (LiquidHaskell refinements)
+    Core.Nat
+    Core.Group
+    -- Physics models
+    Physics.Godel
+    Physics.WormholeBH
+    -- Calculus library
+    Calculus.Limit
+    Calculus.Derivative
+    Calculus.Integral
+    -- Language.Fixpoint solver
+    Language.Fixpoint.Solver.Simplify
+    Language.Fixpoint.Solver.Eliminate
+    Language.Fixpoint.Smt.Theories.Recurse
+    -- LiquidHaskell transforms
+    Language.Haskell.Liquid.Transforms.DenseDex
+    Language.Haskell.Liquid.Transforms.CoreToLogic
+    -- Production LiquidOps kernel (imports liquid-fixpoint)
+    Language.Fixpoint.LiquidOps.Kernel
+  hs-source-dirs:   .
+  default-language: Haskell2010
+  ghc-options:      -Wall -Wno-unused-top-binds
+
+executable cobalt
+  import:           deps
+  main-is:          Main.hs
+  hs-source-dirs:   src
+  build-depends:    cobalt
+  default-language: Haskell2010
+  ghc-options:      -Wall
