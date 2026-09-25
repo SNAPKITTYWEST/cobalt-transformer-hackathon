@@ -1,0 +1,2 @@
+# Store every file byte-for-byte: COBOL is column-sensitive and may be EBCDIC.
+* -text
