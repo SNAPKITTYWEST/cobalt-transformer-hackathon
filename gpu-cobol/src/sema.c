@@ -286,6 +286,32 @@ static void analyze_procedure(GcSema *s, GcAstNode *proc) {
         emit_stmt(s, proc->children[i]);
 }
 
+/* Bind WORKING-STORAGE items as globals: each named item is materialised as
+ * an IR_CONST (its VALUE literal, or 0) in the current kernel's block. */
+static void bind_globals(GcSema *s, GcAstNode *data_div) {
+    if (!data_div) return;
+    if (!s->current_kernel) {
+        s->current_kernel = gc_ir_kernel_create(s->module, "main_kernel");
+        s->current_block = s->current_kernel->entry;
+    }
+    for (int i = 0; i < data_div->n_children; i++) {
+        GcAstNode *d = data_div->children[i];
+        if (!d || d->kind != AST_DATA_ITEM || !d->u.data_item.name) continue;
+        GcAstNode *v = d->u.data_item.value;
+        GcType ty = (v && v->u.literal.lit_kind == TOK_FLOAT)
+            ? gc_type_float32() : gc_type_int32();
+        GcIrInst *inst = gc_ir_inst_create(s->current_kernel, s->current_block,
+                                           IR_CONST, ty);
+        if (v) {
+            inst->imm_i = v->u.literal.int_val;
+            inst->imm_f = v->u.literal.float_val;
+        }
+        GcSymbol *sym = sym_lookup(&s->globals, d->u.data_item.name);
+        if (!sym) sym = sym_add(&s->globals, d->u.data_item.name, ty);
+        if (sym) sym->ir_value = inst->result;
+    }
+}
+
 GcIrModule *gc_sema_analyze(GcSema *s, GcAstNode *ast) {
     if (!ast || ast->kind != AST_PROGRAM) {
         gc_diag_emit(s->diags, GC_DIAG_ERROR, "sema", 0, 0,
@@ -300,6 +326,7 @@ GcIrModule *gc_sema_analyze(GcSema *s, GcAstNode *ast) {
         for (int i = 0; i < ast->u.program.kernel_sec->n_children; i++)
             analyze_kernel(s, ast->u.program.kernel_sec->children[i]);
     }
+    bind_globals(s, ast->u.program.data_div);
     if (ast->u.program.proc_div)
         analyze_procedure(s, ast->u.program.proc_div);
 
