@@ -3,10 +3,9 @@ name: Web playground (GitHub Pages)
 # Builds the Rust cobol-transformer to WebAssembly, compiles the Tailwind CSS,
 # verifies the result, and deploys web/dist to GitHub Pages.
 #
-# NOTE: this repository is private on a GitHub Free account. GitHub Pages does
-# not publish private repositories on the Free plan, so the deploy job will
-# fail until the repo is made public or the account is upgraded. The build and
-# verify steps still run and the site is attached as a workflow artifact.
+# NOTE: GitHub Pages must be enabled with source "GitHub Actions"
+# (Settings -> Pages). The repository is public so Pages can publish on the
+# Free plan.
 
 on:
   push:

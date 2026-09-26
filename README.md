@@ -99,8 +99,6 @@ Deep links: `index.html?sample=ledger-post&op=generate`.
 
 `.github/workflows/pages.yml` builds the wasm and CSS, runs `npm run verify`,
 and deploys `web/dist` to GitHub Pages on pushes to `main` that touch
-`cobol-transformer/`, `web/` or the workflow. **This repository is private and
-the account is on GitHub Free, where Pages does not publish private
-repositories.** The build and verify jobs still run, but the deploy step will not
-publish until the repository is made public or the account is upgraded. Until
-then, use the committed `web/dist` with any static host or locally.
+`cobol-transformer/`, `web/` or the workflow, and on manual runs
+(Actions → "Web playground (GitHub Pages)" → Run workflow). The live demo is at
+**https://snapkittywest.github.io/cobalt-transformer-hackathon/**.

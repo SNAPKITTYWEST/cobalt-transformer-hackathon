@@ -126,9 +126,9 @@ These are properties of the current transformer, shown as-is by the playground:
   this work (`lexer::tests::test_lex_level_number`,
   `lexer::tests::test_lex_keywords`,
   `preprocessor::tests::test_replace_statement`); the integration tests pass.
-- GitHub Pages: the repository is private on GitHub Free, so the Pages deploy
-  in `.github/workflows/pages.yml` will not publish until the repository is made
-  public or the account is upgraded. The built site is committed in `web/dist`.
+- GitHub Pages: `.github/workflows/pages.yml` deploys `web/dist` to
+  https://snapkittywest.github.io/cobalt-transformer-hackathon/ on pushes to
+  `main`. The built site is also committed in `web/dist`.
 
 ## Frontend debugging
 

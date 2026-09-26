@@ -79,11 +79,11 @@ an iframe. Delete any harness file before committing.
 
 - The user's global pre-push hook **blocks agent pushes** (`C:\Users\jessi\.git-hooks\pre-push`). Give the user commands instead:
   ```powershell
-  cd C:\Users\jessi\Desktop\cobalt-transformer; git push -u origin master
-  cd C:\Users\jessi\Desktop\cobalt-transformer-hackathon; git push -u origin master
+  cd C:\Users\jessi\Desktop\cobalt-transformer; git push -u origin main
+  cd C:\Users\jessi\Desktop\cobalt-transformer-hackathon; git push -u origin main
   ```
   They type `y` at the "Do you want to push?" prompt.
-- GitHub Pages will **not** publish while the hackathon repo is private on the Free plan. The options are to make it public, upgrade the plan, or host `web/dist` elsewhere. Do not change repo visibility without asking.
+- The hackathon repo was made **public** (user's decision, 2026-09-26) so GitHub Pages can publish on the Free plan. Pages source is "GitHub Actions"; `.github/workflows/pages.yml` deploys on pushes to `main`. The commercial repo stays **private**.
 
 ## 5. Working rules for this user
 
