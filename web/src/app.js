@@ -155,8 +155,16 @@ els.source.addEventListener('keydown', (e) => {
     els.source.dispatchEvent(new Event('input'));
   }
 });
+// Ctrl/Cmd+Enter runs once per press: auto-repeat while held and Enter used
+// to confirm an IME composition are ignored.
 document.addEventListener('keydown', (e) => {
-  if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) { e.preventDefault(); execute('keyboard'); }
+  if (e.key !== 'Enter' || !(e.ctrlKey || e.metaKey) || e.altKey || e.shiftKey) return;
+  e.preventDefault();
+  if (e.repeat || e.isComposing) {
+    dbg('run-ignored', e.repeat ? 'Ctrl+Enter auto-repeat' : 'Enter during IME composition');
+    return;
+  }
+  runNow('keyboard');
 });
 
 // ---------------------------------------------------------------- samples
@@ -233,21 +241,32 @@ for (const el of [els.format, els.normalizeFirst, ...document.querySelectorAll('
 els.fileName.addEventListener('change', () => execute('file-name'));
 els.run.addEventListener('click', () => {
   dbg('run-click', { ready, operation: els.op.value, disabled: els.run.disabled });
-  execute('button');
+  runNow('button');
 });
+
+// Explicit runs (button, Ctrl+Enter) cancel any pending run-on-edit timer,
+// so typing then pressing Run executes once, not once now and again 300 ms later.
+function runNow(trigger) {
+  if (debounceTimer) {
+    clearTimeout(debounceTimer);
+    debounceTimer = null;
+    dbg('debounce-cancelled', `pending edit run replaced by ${trigger}`);
+  }
+  execute(trigger);
+}
 els.tabs.forEach((t) => t.addEventListener('click', () => { currentView = t.dataset.view; syncOptions(); renderOutput(); }));
 
 function scheduleRun() {
   if (!els.autoRun.checked) return;
   clearTimeout(debounceTimer);
-  debounceTimer = setTimeout(() => execute('edit'), 300);
+  debounceTimer = setTimeout(() => { debounceTimer = null; execute('edit'); }, 300);
 }
 
 // ---------------------------------------------------------------- run
 function execute(trigger = 'auto') {
   if (!ready) {
     dbg('run-skipped', `wasm not ready (trigger: ${trigger})`);
-    if (trigger === 'button') els.status.textContent = 'WebAssembly is still loading or failed to load - see the badge at the top.';
+    if (trigger === 'button' || trigger === 'keyboard') els.status.textContent = 'WebAssembly is still loading or failed to load - see the badge at the top.';
     return;
   }
   const options = collectOptions();
