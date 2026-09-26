@@ -1,0 +1,73 @@
+<!-- =====================================================================
+     attention-kernel.dtd — SGML document type for the COBOL attention
+     kernel. The instance attention-kernel.sgm uses explicit end tags and
+     no XML-incompatible constructs, so the same document is parseable as
+     SGML (with this DTD) and as XML (for the XSLT compiler).
+     ===================================================================== -->
+
+<!ELEMENT attention (program)+>
+<!ATTLIST attention seq-len NMTOKEN #FIXED "64"
+                    head-dim NMTOKEN #FIXED "64"
+                    scale NMTOKEN #FIXED "8">
+
+<!ENTITY % stmt "comment | perform-varying | move | compute | call | if | perform">
+
+<!ELEMENT program (description?, working-storage?, linkage?, paragraph+)>
+<!ATTLIST program id ID #REQUIRED
+                  kind (kernel|pipeline) #REQUIRED>
+
+<!ELEMENT description (#PCDATA)>
+<!ELEMENT working-storage (group+)>
+<!ATTLIST group name CDATA #REQUIRED>
+<!ELEMENT group (field+)>
+<!ELEMENT field (#PCDATA)>
+<!ATTLIST field name CDATA #REQUIRED
+                  picture CDATA #IMPLIED
+                  usage CDATA #IMPLIED
+                  value CDATA #IMPLIED>
+
+<!ELEMENT linkage (table+)>
+<!ELEMENT table (row-group)>
+<!ATTLIST table name CDATA #REQUIRED>
+<!ELEMENT row-group (cell)>
+<!ATTLIST row-group name CDATA #REQUIRED
+                    occurs NMTOKEN #REQUIRED>
+<!ELEMENT cell (#PCDATA)>
+<!ATTLIST cell name CDATA #REQUIRED
+                 usage CDATA #REQUIRED
+                 occurs NMTOKEN #REQUIRED>
+
+<!ELEMENT paragraph (%stmt;)*>
+<!ATTLIST paragraph name CDATA #REQUIRED>
+
+<!ELEMENT perform-varying (%stmt;)*>
+<!ATTLIST perform-varying var CDATA #REQUIRED
+                           from NMTOKEN #REQUIRED
+                           by NMTOKEN #REQUIRED
+                           until CDATA #REQUIRED>
+
+<!ELEMENT move (#PCDATA)>
+<!ATTLIST move value CDATA #REQUIRED
+               target CDATA #REQUIRED
+               index CDATA #IMPLIED>
+
+<!ELEMENT compute (#PCDATA)>
+<!ATTLIST compute target CDATA #REQUIRED
+                  index CDATA #REQUIRED
+                  expr CDATA #REQUIRED>
+
+<!ELEMENT call (arg | on-exception | on-success)*>
+<!ATTLIST call entry CDATA #REQUIRED>
+<!ELEMENT arg (#PCDATA)>
+<!ATTLIST arg name CDATA #REQUIRED>
+<!ELEMENT on-exception (%stmt;)*>
+<!ELEMENT on-success (%stmt;)*>
+
+<!ELEMENT if (%stmt;)*>
+<!ATTLIST if cond CDATA #REQUIRED>
+
+<!ELEMENT perform (#PCDATA)>
+<!ATTLIST perform name CDATA #REQUIRED>
+
+<!ELEMENT comment (#PCDATA)>
+<!-- ===================== end of attention-kernel.dtd ================== -->

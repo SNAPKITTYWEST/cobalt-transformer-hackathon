@@ -1,0 +1,202 @@
+<!DOCTYPE attention SYSTEM "attention-kernel.dtd">
+<!-- =====================================================================
+     attention-kernel.sgm — SGML instance of the COBOL attention kernel.
+     Structure mirrors attention.cob exactly. XML-compatible SGML
+     (Annex K): explicit end tags, quoted attributes, no tag omission.
+     Transformed by attention-kernel.xsl to regenerate the COBOL source
+     and to produce the static-analysis report.
+     ===================================================================== -->
+<attention seq-len="64" head-dim="64" scale="8">
+
+  <program id="ATTN-CALC" kind="kernel">
+    <description>Reference kernel: SCORE = (Q x K^T) / 8, 64x64.</description>
+
+    <working-storage>
+      <group name="WS-IND">
+        <field name="I" picture="S9(4)" usage="COMP-5" value="0">index</field>
+        <field name="J" picture="S9(4)" usage="COMP-5" value="0">index</field>
+        <field name="K" picture="S9(4)" usage="COMP-5" value="0">index</field>
+      </group>
+      <group name="WS-BACKEND">
+        <field name="ATTN-USE-BACKEND" picture="X" value="N">switch</field>
+      </group>
+    </working-storage>
+
+    <linkage>
+      <table name="Q-VAL">
+        <row-group name="Q-ROW" occurs="64">
+          <cell name="Q-ELEMENT" usage="COMP-2" occurs="64">query tensor</cell>
+        </row-group>
+      </table>
+      <table name="K-VAL">
+        <row-group name="K-ROW" occurs="64">
+          <cell name="K-ELEMENT" usage="COMP-2" occurs="64">key tensor</cell>
+        </row-group>
+      </table>
+      <table name="SCORE">
+        <row-group name="SCORE-ROW" occurs="64">
+          <cell name="SCORE-ELEMENT" usage="COMP-2" occurs="64">output</cell>
+        </row-group>
+      </table>
+    </linkage>
+
+    <paragraph name="CALCULATE-ATTENTION">
+      <comment>Golden reference kernel. Accumulate all 64 products, then
+               scale once by 1/sqrt(d_k) = 1/8.</comment>
+      <if cond="ATTN-USE-BACKEND = 'Y'">
+        <call entry="ATTN-GEMM">
+          <arg name="Q-VAL">matrix</arg>
+          <arg name="K-VAL">matrix</arg>
+          <arg name="SCORE">matrix</arg>
+          <on-exception>
+            <move value="N" target="ATTN-USE-BACKEND">fallback</move>
+          </on-exception>
+          <on-success>
+            <perform name="GOBACK">return after backend</perform>
+          </on-success>
+        </call>
+      </if>
+      <perform-varying var="I" from="1" by="1" until="I &gt; 64">
+        <perform-varying var="J" from="1" by="1" until="J &gt; 64">
+          <move value="0" target="SCORE-ELEMENT" index="I J">zero accumulator</move>
+          <perform-varying var="K" from="1" by="1" until="K &gt; 64">
+            <compute target="SCORE-ELEMENT" index="I J"
+                     expr="SCORE-ELEMENT (I J) + (Q-ELEMENT (I K) * K-ELEMENT (J K))">accumulate</compute>
+          </perform-varying>
+          <comment>Scale by sqrt(d_k): d_k = 64, therefore sqrt(d_k) = 8.</comment>
+          <compute target="SCORE-ELEMENT" index="I J"
+                   expr="SCORE-ELEMENT (I J) / 8">scale</compute>
+        </perform-varying>
+      </perform-varying>
+    </paragraph>
+
+    <paragraph name="SCALE-ATTENTION">
+      <comment>Explicit 1/8 scaling stage (identical to trailing kernel scale).</comment>
+      <perform-varying var="I" from="1" by="1" until="I &gt; 64">
+        <perform-varying var="J" from="1" by="1" until="J &gt; 64">
+          <compute target="SCORE-ELEMENT" index="I J"
+                   expr="SCORE-ELEMENT (I J) / 8">scale</compute>
+        </perform-varying>
+      </perform-varying>
+    </paragraph>
+  </program>
+
+  <program id="ATTN-PIPE" kind="pipeline">
+    <description>Full pipeline: Q x K^T -&gt; scale -&gt; softmax -&gt; x V.</description>
+
+    <working-storage>
+      <group name="WS-IND">
+        <field name="I" picture="S9(4)" usage="COMP-5" value="0">index</field>
+        <field name="J" picture="S9(4)" usage="COMP-5" value="0">index</field>
+        <field name="K" picture="S9(4)" usage="COMP-5" value="0">index</field>
+        <field name="D" picture="S9(4)" usage="COMP-5" value="0">index</field>
+      </group>
+      <group name="WS-SCALARS">
+        <field name="WS-MAX" usage="COMP-2" value="0">softmax row max</field>
+        <field name="WS-SUM" usage="COMP-2" value="0">softmax normalizer</field>
+        <field name="WS-E" usage="COMP-2" value="0">exp term</field>
+      </group>
+    </working-storage>
+
+    <linkage>
+      <table name="Q-VAL">
+        <row-group name="Q-ROW" occurs="64">
+          <cell name="Q-ELEMENT" usage="COMP-2" occurs="64">query tensor</cell>
+        </row-group>
+      </table>
+      <table name="K-VAL">
+        <row-group name="K-ROW" occurs="64">
+          <cell name="K-ELEMENT" usage="COMP-2" occurs="64">key tensor</cell>
+        </row-group>
+      </table>
+      <table name="V-VAL">
+        <row-group name="V-ROW" occurs="64">
+          <cell name="V-ELEMENT" usage="COMP-2" occurs="64">value tensor</cell>
+        </row-group>
+      </table>
+      <table name="SCORE">
+        <row-group name="SCORE-ROW" occurs="64">
+          <cell name="SCORE-ELEMENT" usage="COMP-2" occurs="64">logits</cell>
+        </row-group>
+      </table>
+      <table name="PROB">
+        <row-group name="PROB-ROW" occurs="64">
+          <cell name="PROB-ELEMENT" usage="COMP-2" occurs="64">softmax probs</cell>
+        </row-group>
+      </table>
+      <table name="OUT-MAT">
+        <row-group name="OUT-ROW" occurs="64">
+          <cell name="OUT-ELEMENT" usage="COMP-2" occurs="64">attention output</cell>
+        </row-group>
+      </table>
+    </linkage>
+
+    <paragraph name="CALCULATE-ATTENTION">
+      <comment>Stage 1: raw product S = Q x K^T (scaling deferred to stage 2).</comment>
+      <perform-varying var="I" from="1" by="1" until="I &gt; 64">
+        <perform-varying var="J" from="1" by="1" until="J &gt; 64">
+          <move value="0" target="SCORE-ELEMENT" index="I J">zero accumulator</move>
+          <perform-varying var="K" from="1" by="1" until="K &gt; 64">
+            <compute target="SCORE-ELEMENT" index="I J"
+                     expr="SCORE-ELEMENT (I J) + (Q-ELEMENT (I K) * K-ELEMENT (J K))">accumulate</compute>
+          </perform-varying>
+        </perform-varying>
+      </perform-varying>
+    </paragraph>
+
+    <paragraph name="SCALE-ATTENTION">
+      <comment>Stage 2: scaling by 1/sqrt(d_k) = 1/8. Applied exactly once.</comment>
+      <perform-varying var="I" from="1" by="1" until="I &gt; 64">
+        <perform-varying var="J" from="1" by="1" until="J &gt; 64">
+          <compute target="SCORE-ELEMENT" index="I J"
+                   expr="SCORE-ELEMENT (I J) / 8">scale</compute>
+        </perform-varying>
+      </perform-varying>
+    </paragraph>
+
+    <paragraph name="SOFTMAX-ATTENTION">
+      <comment>Stage 3: numerically stable per-row softmax with max shift.</comment>
+      <perform-varying var="I" from="1" by="1" until="I &gt; 64">
+        <move value="SCORE-ELEMENT (I 1)" target="WS-MAX">seed row max</move>
+        <perform-varying var="J" from="2" by="1" until="J &gt; 64">
+          <if cond="SCORE-ELEMENT (I J) &gt; WS-MAX">
+            <move value="SCORE-ELEMENT (I J)" target="WS-MAX">new row max</move>
+          </if>
+        </perform-varying>
+        <move value="0" target="WS-SUM">reset normalizer</move>
+        <perform-varying var="J" from="1" by="1" until="J &gt; 64">
+          <compute target="WS-E"
+                   expr="FUNCTION EXP (SCORE-ELEMENT (I J) - WS-MAX)">exp</compute>
+          <move value="WS-E" target="PROB-ELEMENT" index="I J">store exp</move>
+          <compute target="WS-SUM" expr="WS-SUM + WS-E">accumulate Z</compute>
+        </perform-varying>
+        <perform-varying var="J" from="1" by="1" until="J &gt; 64">
+          <compute target="PROB-ELEMENT" index="I J"
+                   expr="PROB-ELEMENT (I J) / WS-SUM">normalize</compute>
+        </perform-varying>
+      </perform-varying>
+    </paragraph>
+
+    <paragraph name="APPLY-VALUE-MATRIX">
+      <comment>Stage 4: OUT(I,D) = SUM J PROB(I,J) * V(J,D).</comment>
+      <perform-varying var="I" from="1" by="1" until="I &gt; 64">
+        <perform-varying var="D" from="1" by="1" until="D &gt; 64">
+          <move value="0" target="OUT-ELEMENT" index="I D">zero accumulator</move>
+          <perform-varying var="J" from="1" by="1" until="J &gt; 64">
+            <compute target="OUT-ELEMENT" index="I D"
+                     expr="OUT-ELEMENT (I D) + (PROB-ELEMENT (I J) * V-ELEMENT (J D))">accumulate</compute>
+          </perform-varying>
+        </perform-varying>
+      </perform-varying>
+    </paragraph>
+
+    <paragraph name="RUN-PIPE">
+      <comment>Pipeline driver: stages in order, never fused.</comment>
+      <perform name="CALCULATE-ATTENTION">stage 1</perform>
+      <perform name="SCALE-ATTENTION">stage 2</perform>
+      <perform name="SOFTMAX-ATTENTION">stage 3</perform>
+      <perform name="APPLY-VALUE-MATRIX">stage 4</perform>
+    </paragraph>
+  </program>
+
+</attention>
