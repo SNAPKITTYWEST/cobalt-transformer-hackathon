@@ -1,0 +1,7 @@
+# Optional external test vectors (one row per line, 64 floats).
+# When MODE-EXTERNAL is selected the kernel will attempt to load
+# these values. If the file is absent or incomplete the kernel
+# falls back to the deterministic identity initialization.
+#
+# Placeholder – identity diagonal for documentation only.
+1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
