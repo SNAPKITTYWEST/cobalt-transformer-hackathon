@@ -37,7 +37,39 @@ const els = {
   status: $('status'),
   wasmStatus: $('wasm-status'),
   theme: $('theme-toggle'),
+  debug: $('debug'),
+  debugPanel: $('debug-panel'),
+  debugLog: $('debug-log'),
+  debugClear: $('debug-clear'),
 };
+
+// ---------------------------------------------------------------- debug
+// Enabled by the "debug" checkbox or ?debug=1. Entries go to the on-page
+// panel and to console.debug; the panel keeps the last 200 lines.
+const DEBUG_KEY = 'cobol-playground-debug';
+function readDebugPref() {
+  if (new URLSearchParams(location.search).get('debug') === '1') return true;
+  try { return localStorage.getItem(DEBUG_KEY) === '1'; } catch { return false; }
+}
+els.debug.checked = readDebugPref();
+els.debugPanel.classList.toggle('hidden', !els.debug.checked);
+els.debug.addEventListener('change', () => {
+  els.debugPanel.classList.toggle('hidden', !els.debug.checked);
+  try { localStorage.setItem(DEBUG_KEY, els.debug.checked ? '1' : '0'); } catch { /* storage unavailable */ }
+  dbg('debug', els.debug.checked ? 'enabled' : 'disabled');
+});
+els.debugClear.addEventListener('click', () => { els.debugLog.textContent = ''; });
+
+function dbg(event, detail) {
+  if (!els.debug.checked) return;
+  const time = new Date().toISOString().slice(11, 23);
+  const text = detail === undefined ? '' : typeof detail === 'string' ? detail : JSON.stringify(detail);
+  console.debug(`[playground] ${event}`, detail ?? '');
+  const lines = (els.debugLog.textContent ? els.debugLog.textContent.split('\n') : []);
+  lines.push(`${time} ${event}${text ? ' ' + text : ''}`);
+  els.debugLog.textContent = lines.slice(-200).join('\n');
+  els.debugLog.scrollTop = els.debugLog.scrollHeight;
+}
 
 const TAB_ON = ['bg-indigo-100', 'text-indigo-800', 'dark:bg-indigo-900/50', 'dark:text-indigo-200'];
 const TAB_OFF = ['text-slate-600', 'hover:bg-slate-100', 'dark:text-slate-400', 'dark:hover:bg-slate-800'];
@@ -124,7 +156,7 @@ els.source.addEventListener('keydown', (e) => {
   }
 });
 document.addEventListener('keydown', (e) => {
-  if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) { e.preventDefault(); execute(); }
+  if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) { e.preventDefault(); execute('keyboard'); }
 });
 
 // ---------------------------------------------------------------- samples
@@ -165,7 +197,7 @@ async function selectSample(id) {
   errorLine = null;
   renderGutter();
   updateCursor();
-  execute();
+  execute('sample');
 }
 
 els.sample.addEventListener('change', () => selectSample(els.sample.value));
@@ -194,31 +226,44 @@ function collectOptions() {
   };
 }
 
-els.op.addEventListener('change', () => { currentView = VIEWS[els.op.value][0]; syncOptions(); execute(); });
+els.op.addEventListener('change', () => { currentView = VIEWS[els.op.value][0]; syncOptions(); execute('operation'); });
 for (const el of [els.format, els.normalizeFirst, ...document.querySelectorAll('input[name="pass"]')]) {
-  el.addEventListener('change', () => { syncOptions(); execute(); });
+  el.addEventListener('change', () => { syncOptions(); execute('option'); });
 }
-els.fileName.addEventListener('change', execute);
-els.run.addEventListener('click', execute);
+els.fileName.addEventListener('change', () => execute('file-name'));
+els.run.addEventListener('click', () => {
+  dbg('run-click', { ready, operation: els.op.value, disabled: els.run.disabled });
+  execute('button');
+});
 els.tabs.forEach((t) => t.addEventListener('click', () => { currentView = t.dataset.view; syncOptions(); renderOutput(); }));
 
 function scheduleRun() {
   if (!els.autoRun.checked) return;
   clearTimeout(debounceTimer);
-  debounceTimer = setTimeout(execute, 300);
+  debounceTimer = setTimeout(() => execute('edit'), 300);
 }
 
 // ---------------------------------------------------------------- run
-function execute() {
-  if (!ready) return;
+function execute(trigger = 'auto') {
+  if (!ready) {
+    dbg('run-skipped', `wasm not ready (trigger: ${trigger})`);
+    if (trigger === 'button') els.status.textContent = 'WebAssembly is still loading or failed to load - see the badge at the top.';
+    return;
+  }
+  const options = collectOptions();
+  dbg('run-start', { trigger, operation: els.op.value, options, sourceChars: els.source.value.length });
   const t0 = performance.now();
   let result;
+  let raw = '';
   try {
-    result = JSON.parse(run(els.op.value, els.source.value, JSON.stringify(collectOptions())));
+    raw = run(els.op.value, els.source.value, JSON.stringify(options));
+    result = JSON.parse(raw);
   } catch (e) {
+    dbg('run-exception', { message: String(e), stack: e && e.stack ? String(e.stack).split('\n').slice(0, 4).join(' | ') : null, rawChars: raw.length });
     result = { ok: false, operation: els.op.value, output: '', kind: 'text', error: { stage: 'wasm', message: String(e), line: null, column: null }, diagnostics: [], stats: {}, tokens: null };
   }
   const ms = performance.now() - t0;
+  dbg('run-end', { ok: result.ok, ms: Number(ms.toFixed(2)), rawChars: raw.length, kind: result.kind, error: result.error || null, diagnostics: (result.diagnostics || []).length, stats: result.stats || {} });
   lastResult = result;
   renderError(result);
   renderDiagnostics(result.diagnostics || []);
@@ -399,14 +444,18 @@ els.copy.addEventListener('click', async () => {
 syncOptions();
 renderGutter();
 els.wasmStatus.classList.remove('hidden');
+dbg('boot', 'loading WebAssembly module');
 try {
+  const tInit = performance.now();
   await init();
   ready = true;
+  dbg('wasm-ready', `${(performance.now() - tInit).toFixed(1)} ms`);
   const v = JSON.parse(version());
   els.wasmStatus.textContent = `wasm ready, wrapper v${v.wrapper}`;
   els.wasmStatus.className = 'hidden rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-medium text-emerald-800 sm:inline dark:bg-emerald-900/40 dark:text-emerald-300';
   els.run.disabled = false;
 } catch (e) {
+  dbg('wasm-failed', String(e));
   els.wasmStatus.textContent = 'wasm failed to load';
   els.wasmStatus.className = 'rounded-full bg-rose-100 px-2 py-0.5 text-xs font-medium text-rose-800 dark:bg-rose-900/40 dark:text-rose-300';
   els.output.replaceChildren(placeholder(`Could not load the WebAssembly module: ${e}`));

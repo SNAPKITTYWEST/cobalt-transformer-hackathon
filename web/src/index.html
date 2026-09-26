@@ -115,7 +115,19 @@
         <label class="flex items-center gap-1.5">
           <input id="auto-run" type="checkbox" checked class="accent-indigo-600"> run on edit
         </label>
+        <label class="flex items-center gap-1.5" title="Log every run (and why a run did not happen) to the debug panel and the browser console">
+          <input id="debug" type="checkbox" class="accent-indigo-600"> debug
+        </label>
       </fieldset>
+
+      <section id="debug-panel" aria-label="Debug log"
+        class="hidden rounded-lg border border-amber-300 bg-amber-50 px-3 py-2 text-xs text-amber-950 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-100">
+        <div class="flex items-center justify-between gap-2">
+          <p class="font-semibold">Debug log</p>
+          <button id="debug-clear" type="button" class="font-medium underline underline-offset-2">Clear</button>
+        </div>
+        <pre id="debug-log" class="mt-1 max-h-64 overflow-auto whitespace-pre-wrap break-all font-mono"></pre>
+      </section>
 
       <div id="error-box" role="alert"
         class="hidden rounded-lg border border-rose-300 bg-rose-50 px-3 py-2 text-sm text-rose-900 dark:border-rose-800 dark:bg-rose-950/50 dark:text-rose-200">
