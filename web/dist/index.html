@@ -87,10 +87,12 @@
             <option value="normalize-format">Normalize fixed/free format</option>
           </select>
         </label>
-        <button id="run" type="button" disabled
-          class="rounded-md bg-indigo-600 px-4 py-1.5 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500 disabled:cursor-not-allowed disabled:opacity-50">
-          Run <kbd class="ml-1 hidden rounded bg-indigo-500/60 px-1 text-[10px] font-normal sm:inline">Ctrl+Enter</kbd>
-        </button>
+        <form id="exec-form" class="flex items-end" novalidate>
+          <button id="run" type="submit"
+            class="min-w-28 rounded-md bg-indigo-600 px-4 py-1.5 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600 aria-busy:cursor-wait aria-busy:opacity-70">
+            <span id="run-label">Execute</span> <kbd class="ml-1 hidden rounded bg-indigo-500/60 px-1 text-[10px] font-normal sm:inline">Ctrl+Enter</kbd>
+          </button>
+        </form>
       </div>
 
       <fieldset class="flex flex-wrap items-center gap-x-5 gap-y-2 rounded-lg border border-slate-200 px-3 py-2 text-sm dark:border-slate-800">
@@ -160,6 +162,16 @@
         <div id="output" class="code-metrics min-h-0 flex-1 overflow-auto p-3"></div>
       </div>
       <p id="status" class="text-xs text-slate-500 dark:text-slate-400">&nbsp;</p>
+
+      <section aria-labelledby="history-heading" class="rounded-lg border border-slate-200 dark:border-slate-800">
+        <div class="flex items-center justify-between border-b border-slate-200 px-3 py-1.5 dark:border-slate-800">
+          <h3 id="history-heading" class="text-xs font-semibold text-slate-600 dark:text-slate-400">Run history <span id="history-count" class="font-normal">(0)</span></h3>
+          <button id="history-clear" type="button" class="text-xs font-medium text-slate-500 underline underline-offset-2 dark:text-slate-400">Clear</button>
+        </div>
+        <ol id="history-list" class="max-h-48 divide-y divide-slate-100 overflow-auto text-xs dark:divide-slate-800">
+          <li id="history-empty" class="px-3 py-2 text-slate-500 dark:text-slate-400">No executions yet. Press Execute or Ctrl+Enter.</li>
+        </ol>
+      </section>
     </section>
   </main>
 

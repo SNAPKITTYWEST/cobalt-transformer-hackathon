@@ -41,6 +41,12 @@ const els = {
   debugPanel: $('debug-panel'),
   debugLog: $('debug-log'),
   debugClear: $('debug-clear'),
+  execForm: $('exec-form'),
+  runLabel: $('run-label'),
+  historyList: $('history-list'),
+  historyEmpty: $('history-empty'),
+  historyCount: $('history-count'),
+  historyClear: $('history-clear'),
 };
 
 // ---------------------------------------------------------------- debug
@@ -239,20 +245,113 @@ for (const el of [els.format, els.normalizeFirst, ...document.querySelectorAll('
   el.addEventListener('change', () => { syncOptions(); execute('option'); });
 }
 els.fileName.addEventListener('change', () => execute('file-name'));
-els.run.addEventListener('click', () => {
-  dbg('run-click', { ready, operation: els.op.value, disabled: els.run.disabled });
+// ---------------------------------------------------------------- execute
+// Explicit executions (the Execute form and Ctrl+Enter) go through runNow().
+// The form's submit event is the single entry point for the button, so a
+// click, Enter on the focused button, and a tap all take the same path.
+els.execForm.addEventListener('submit', (e) => {
+  e.preventDefault();
+  dbg('execute-submit', { ready, operation: els.op.value });
   runNow('button');
 });
 
-// Explicit runs (button, Ctrl+Enter) cancel any pending run-on-edit timer,
-// so typing then pressing Run executes once, not once now and again 300 ms later.
+let runSeq = 0;
+let pendingRun = null;   // explicit run requested before wasm finished loading
+const history = [];      // { n, time, trigger, operation, ok, ms, summary, result }
+
 function runNow(trigger) {
   if (debounceTimer) {
     clearTimeout(debounceTimer);
     debounceTimer = null;
     dbg('debounce-cancelled', `pending edit run replaced by ${trigger}`);
   }
-  execute(trigger);
+  if (!ready) {
+    // Not dropped: queued and executed as soon as the module is ready.
+    pendingRun = trigger;
+    els.runLabel.textContent = 'Queued…';
+    els.status.textContent = 'WebAssembly is still loading - this execution will run as soon as it is ready.';
+    dbg('execute-queued', trigger);
+    return;
+  }
+  // Show a busy state for one frame so every execution is visibly acknowledged,
+  // even when the output is identical to the previous one.
+  els.run.setAttribute('aria-busy', 'true');
+  els.runLabel.textContent = 'Running…';
+  // setTimeout (not requestAnimationFrame): rAF is paused in hidden tabs and
+  // background frames, which would leave the button stuck on "Running…".
+  setTimeout(() => {
+    const done = execute(trigger);
+    els.run.removeAttribute('aria-busy');
+    els.runLabel.textContent = 'Execute';
+    if (done) {
+      recordHistory(trigger, done.result, done.ms);
+      flashOutput(done.result.ok);
+    }
+  }, 0);
+}
+
+function recordHistory(trigger, result, ms) {
+  runSeq += 1;
+  history.unshift({
+    n: runSeq,
+    time: new Date().toLocaleTimeString(),
+    trigger,
+    operation: result.operation,
+    ok: result.ok,
+    ms,
+    summary: result.error ? `${result.error.stage}: ${result.error.message}` : (els.status.textContent || '').split(' | ').slice(1, -1).join(' | '),
+    result,
+  });
+  history.length = Math.min(history.length, 50);
+  renderHistory();
+}
+
+function renderHistory() {
+  els.historyCount.textContent = `(${history.length})`;
+  if (!history.length) { els.historyList.replaceChildren(els.historyEmpty); return; }
+  els.historyList.replaceChildren(...history.map((h) => {
+    const li = document.createElement('li');
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.className = 'flex w-full items-baseline gap-2 px-3 py-1.5 text-left hover:bg-slate-50 dark:hover:bg-slate-900';
+    b.title = 'Show this result again';
+    const badge = h.ok
+      ? 'rounded bg-emerald-100 px-1.5 font-semibold text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300'
+      : 'rounded bg-rose-100 px-1.5 font-semibold text-rose-800 dark:bg-rose-900/40 dark:text-rose-300';
+    b.innerHTML = '';
+    const parts = [
+      ['font-mono text-slate-400', `#${h.n}`],
+      ['text-slate-500 dark:text-slate-400', h.time],
+      ['font-medium', h.operation],
+      [badge, h.ok ? 'ok' : 'failed'],
+      ['text-slate-500 dark:text-slate-400', `${h.ms.toFixed(1)} ms`],
+      ['min-w-0 flex-1 truncate text-slate-500 dark:text-slate-400', h.summary],
+    ];
+    for (const [cls, text] of parts) {
+      const s = document.createElement('span');
+      s.className = cls;
+      s.textContent = text;
+      b.append(s);
+    }
+    b.addEventListener('click', () => {
+      dbg('history-restore', `#${h.n}`);
+      lastResult = h.result;
+      renderError(h.result);
+      renderDiagnostics(h.result.diagnostics || []);
+      renderOutput();
+      renderStatus(h.result, h.ms);
+      flashOutput(h.result.ok);
+    });
+    li.append(b);
+    return li;
+  }));
+}
+els.historyClear.addEventListener('click', () => { history.length = 0; renderHistory(); });
+
+function flashOutput(ok) {
+  const ring = ok ? ['ring-2', 'ring-emerald-400'] : ['ring-2', 'ring-rose-400'];
+  els.output.classList.add(...ring);
+  setTimeout(() => els.output.classList.remove(...ring), 450);
 }
 els.tabs.forEach((t) => t.addEventListener('click', () => { currentView = t.dataset.view; syncOptions(); renderOutput(); }));
 
@@ -266,8 +365,7 @@ function scheduleRun() {
 function execute(trigger = 'auto') {
   if (!ready) {
     dbg('run-skipped', `wasm not ready (trigger: ${trigger})`);
-    if (trigger === 'button' || trigger === 'keyboard') els.status.textContent = 'WebAssembly is still loading or failed to load - see the badge at the top.';
-    return;
+    return null;
   }
   const options = collectOptions();
   dbg('run-start', { trigger, operation: els.op.value, options, sourceChars: els.source.value.length });
@@ -288,6 +386,7 @@ function execute(trigger = 'auto') {
   renderDiagnostics(result.diagnostics || []);
   renderOutput();
   renderStatus(result, ms);
+  return { result, ms };
 }
 
 function renderError(r) {
@@ -472,11 +571,22 @@ try {
   const v = JSON.parse(version());
   els.wasmStatus.textContent = `wasm ready, wrapper v${v.wrapper}`;
   els.wasmStatus.className = 'hidden rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-medium text-emerald-800 sm:inline dark:bg-emerald-900/40 dark:text-emerald-300';
-  els.run.disabled = false;
+
 } catch (e) {
   dbg('wasm-failed', String(e));
+  pendingRun = null;
+  els.runLabel.textContent = 'Execute';
+  els.status.textContent = `Cannot execute: the WebAssembly module failed to load (${e}). Serve web/dist over http, not file://.`;
   els.wasmStatus.textContent = 'wasm failed to load';
   els.wasmStatus.className = 'rounded-full bg-rose-100 px-2 py-0.5 text-xs font-medium text-rose-800 dark:bg-rose-900/40 dark:text-rose-300';
   els.output.replaceChildren(placeholder(`Could not load the WebAssembly module: ${e}`));
 }
 await loadSamples();
+// An Execute pressed while the module was loading runs now, after the
+// initial sample is in the editor (so it does not run on an empty source).
+if (ready && pendingRun) {
+  const queued = pendingRun;
+  pendingRun = null;
+  dbg('execute-dequeued', queued);
+  runNow(queued);
+}
