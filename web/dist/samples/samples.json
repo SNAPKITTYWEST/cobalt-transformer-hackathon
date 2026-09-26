@@ -1,0 +1,58 @@
+[
+  {
+    "id": "hello",
+    "label": "hello.cob (cobol-transformer)",
+    "path": "cobol-transformer/tests/fixtures/hello.cob",
+    "file": "hello.cob",
+    "note": "the transformer's own integration-test fixture",
+    "bytes": 318
+  },
+  {
+    "id": "ledger-post",
+    "label": "LEDGER_POST.cbl (sources)",
+    "path": "sources/C/Users/jessi/GolandProjects/devflow-finance-twin/finance/cobol/LEDGER_POST.cbl",
+    "file": "ledger-post.cbl",
+    "note": "indexed ledger posting program",
+    "bytes": 1307
+  },
+  {
+    "id": "law-kernel",
+    "label": "cobol-law-kernel.cob (sources)",
+    "path": "sources/D/tmp/cartographer-agent/kernels/cobol-law-kernel.cob",
+    "file": "law-kernel.cob",
+    "note": "claim-routing agent kernel",
+    "bytes": 1825
+  },
+  {
+    "id": "reqparse",
+    "label": "REQPARSE.cbl (cobalt)",
+    "path": "cobalt/REQPARSE.cbl",
+    "file": "reqparse.cbl",
+    "note": "Cobalt HTTP request-line nugget; the lexer currently stops on a non-ASCII character in a comment",
+    "bytes": 5375
+  },
+  {
+    "id": "vault-treasury",
+    "label": "vault_treasury.cbl (sources)",
+    "path": "sources/C/Users/jessi/Desktop/SKC/DEVFLOW-FINANCE/bridges/cobol/vault_treasury.cbl",
+    "file": "vault-treasury.cbl",
+    "note": "uses operators the lexer does not accept yet",
+    "bytes": 2801
+  },
+  {
+    "id": "mamari",
+    "label": "mamari.cbl (sources)",
+    "path": "sources/C/Users/jessi/Desktop/the-49th-call/substrate/mamari.cbl",
+    "file": "mamari.cbl",
+    "note": "uses operators the lexer does not accept yet",
+    "bytes": 4404
+  },
+  {
+    "id": "vector-add",
+    "label": "vector-add.cbl (gpu-cobol)",
+    "path": "gpu-cobol/examples/vector-add.cbl",
+    "file": "vector-add.cbl",
+    "note": "GPU-COBOL dialect example, shown as source; the transformer does not support this dialect",
+    "bytes": 671
+  }
+]

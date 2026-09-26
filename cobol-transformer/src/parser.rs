@@ -818,7 +818,7 @@ impl Parser {
         false
     }
 
-    fn current_location(&self) -> SourceLocation {
+    pub fn current_location(&self) -> SourceLocation {
         if let Some(token) = self.peek() {
             token.location.clone()
         } else if let Some(last) = self.tokens.last() {

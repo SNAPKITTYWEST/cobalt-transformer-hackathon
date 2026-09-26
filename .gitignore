@@ -1,0 +1,6 @@
+# Web playground build inputs/outputs (web/dist is committed; see README)
+web/node_modules/
+web/wasm/target/
+web/wasm/pkg/
+# Rust build output for the transformer crate
+cobol-transformer/target/

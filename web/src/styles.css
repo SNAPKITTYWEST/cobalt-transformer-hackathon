@@ -1,0 +1,31 @@
+/* Only scan the playground sources (index.html, app.js), not the repo. */
+@import "tailwindcss" source(none);
+@source "./";
+
+/* Class-based dark mode so the toggle can override the OS preference. */
+@custom-variant dark (&:where(.dark, .dark *));
+
+@theme {
+  --font-mono: ui-monospace, "Cascadia Code", "JetBrains Mono", Menlo, Consolas, monospace;
+}
+
+html { color-scheme: light; }
+html.dark { color-scheme: dark; }
+
+/* Editor: gutter and textarea share metrics so line numbers line up. */
+.code-metrics {
+  font-family: var(--font-mono);
+  font-size: 13px;
+  line-height: 20px;
+  tab-size: 4;
+}
+
+.tree details > summary { list-style: none; cursor: pointer; }
+.tree details > summary::-webkit-details-marker { display: none; }
+.tree details > summary::before {
+  content: "\25B8";
+  display: inline-block;
+  width: 1em;
+  transition: transform 120ms ease;
+}
+.tree details[open] > summary::before { transform: rotate(90deg); }

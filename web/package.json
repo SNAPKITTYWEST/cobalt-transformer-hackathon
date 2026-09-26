@@ -1,0 +1,19 @@
+{
+  "name": "cobol-transformer-playground",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Browser playground for the Rust cobol-transformer, compiled to WebAssembly",
+  "type": "module",
+  "scripts": {
+    "build:wasm": "wasm-pack build wasm --target web --release --out-dir pkg",
+    "build:css": "tailwindcss -i src/styles.css -o dist/app.css --minify",
+    "build:site": "node scripts/build-site.mjs",
+    "build": "npm run build:wasm && npm run build:site && npm run build:css",
+    "verify": "node scripts/verify.mjs",
+    "serve": "node scripts/serve.mjs"
+  },
+  "devDependencies": {
+    "@tailwindcss/cli": "^4.1.0",
+    "tailwindcss": "^4.1.0"
+  }
+}

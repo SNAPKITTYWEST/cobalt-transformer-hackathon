@@ -1,0 +1,78 @@
+name: Web playground (GitHub Pages)
+
+# Builds the Rust cobol-transformer to WebAssembly, compiles the Tailwind CSS,
+# verifies the result, and deploys web/dist to GitHub Pages.
+#
+# NOTE: this repository is private on a GitHub Free account. GitHub Pages does
+# not publish private repositories on the Free plan, so the deploy job will
+# fail until the repo is made public or the account is upgraded. The build and
+# verify steps still run and the site is attached as a workflow artifact.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "cobol-transformer/**"
+      - "web/**"
+      - ".github/workflows/pages.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: web
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Rust toolchain with wasm32 target
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: wasm32-unknown-unknown
+
+      - name: Install wasm-pack
+        uses: taiki-e/install-action@v2
+        with:
+          tool: wasm-pack
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: web/wasm
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+
+      - run: npm ci
+      - name: Build wasm + site + Tailwind CSS
+        run: npm run build
+      - name: Verify (wasm exports + static serving under a sub-path)
+        run: npm run verify
+
+      - uses: actions/configure-pages@v5
+        continue-on-error: true
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: web/dist
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

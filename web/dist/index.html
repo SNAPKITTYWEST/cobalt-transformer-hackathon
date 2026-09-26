@@ -1,0 +1,159 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>COBOL Transformer Playground</title>
+  <meta name="description" content="Run the Rust cobol-transformer in the browser via WebAssembly: parse, dump AST, symbols and CFG, generate COBOL, and validate round trips.">
+  <script>
+    // Apply the saved or OS theme before first paint.
+    (function () {
+      var t = null;
+      try { t = localStorage.getItem('cobol-playground-theme'); } catch (e) {}
+      if (t !== 'light' && t !== 'dark') {
+        t = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+      }
+      if (t === 'dark') document.documentElement.classList.add('dark');
+    })();
+  </script>
+  <link rel="stylesheet" href="./app.css">
+  <script type="module" src="./app.js"></script>
+</head>
+<body class="min-h-screen bg-slate-50 text-slate-900 antialiased dark:bg-slate-950 dark:text-slate-100">
+  <header class="border-b border-slate-200 bg-white/80 backdrop-blur dark:border-slate-800 dark:bg-slate-900/80">
+    <div class="mx-auto flex max-w-7xl items-center justify-between gap-3 px-4 py-3">
+      <div class="min-w-0">
+        <h1 class="truncate text-base font-semibold tracking-tight sm:text-lg">COBOL Transformer Playground</h1>
+        <p class="truncate text-xs text-slate-500 dark:text-slate-400">The Rust <code class="font-mono">cobol-transformer</code> crate, compiled to WebAssembly. Nothing leaves your browser.</p>
+      </div>
+      <div class="flex shrink-0 items-center gap-2">
+        <span id="wasm-status" class="hidden rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-800 sm:inline dark:bg-amber-900/40 dark:text-amber-300">loading wasm…</span>
+        <button id="theme-toggle" type="button" aria-label="Toggle dark mode"
+          class="rounded-md border border-slate-300 px-2.5 py-1.5 text-sm hover:bg-slate-100 dark:border-slate-700 dark:hover:bg-slate-800">
+          <span class="dark:hidden">Dark</span><span class="hidden dark:inline">Light</span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <main class="mx-auto grid max-w-7xl grid-cols-1 gap-4 px-4 py-4 lg:grid-cols-2">
+    <!-- Source -->
+    <section class="flex min-w-0 flex-col gap-3" aria-labelledby="source-heading">
+      <div class="flex flex-wrap items-end gap-3">
+        <h2 id="source-heading" class="sr-only">Source</h2>
+        <label class="flex min-w-0 flex-1 flex-col gap-1 text-xs font-medium text-slate-600 dark:text-slate-400">
+          Sample from the repo
+          <select id="sample-select"
+            class="w-full rounded-md border border-slate-300 bg-white px-2 py-1.5 text-sm text-slate-900 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100">
+            <option value="">Loading samples…</option>
+          </select>
+        </label>
+        <label class="flex w-full flex-col gap-1 text-xs font-medium text-slate-600 sm:w-44 dark:text-slate-400">
+          File name
+          <input id="file-name" type="text" value="input.cob" spellcheck="false"
+            class="w-full rounded-md border border-slate-300 bg-white px-2 py-1.5 font-mono text-sm text-slate-900 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100">
+        </label>
+      </div>
+      <p id="sample-note" class="hidden rounded-md bg-sky-50 px-3 py-2 text-xs text-sky-900 dark:bg-sky-950/60 dark:text-sky-200"></p>
+
+      <div class="flex h-[26rem] overflow-hidden rounded-lg border border-slate-300 bg-white lg:h-[40rem] dark:border-slate-700 dark:bg-slate-900">
+        <pre id="gutter" aria-hidden="true"
+          class="code-metrics m-0 select-none overflow-hidden border-r border-slate-200 bg-slate-100 px-2 py-2 text-right text-slate-400 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-600">1</pre>
+        <textarea id="source" spellcheck="false" autocapitalize="off" autocomplete="off" wrap="off" aria-label="COBOL source"
+          class="code-metrics block h-full w-full flex-1 resize-none overflow-auto whitespace-pre bg-transparent px-3 py-2 outline-none"></textarea>
+      </div>
+      <div class="flex items-center justify-between text-xs text-slate-500 dark:text-slate-400">
+        <span id="cursor-pos">Ln 1, Col 1</span>
+        <span id="source-size">0 lines</span>
+      </div>
+    </section>
+
+    <!-- Operation + output -->
+    <section class="flex min-w-0 flex-col gap-3" aria-labelledby="output-heading">
+      <h2 id="output-heading" class="sr-only">Operation and output</h2>
+      <div class="flex flex-wrap items-end gap-3">
+        <label class="flex min-w-0 flex-1 flex-col gap-1 text-xs font-medium text-slate-600 dark:text-slate-400">
+          Operation
+          <select id="operation"
+            class="w-full rounded-md border border-slate-300 bg-white px-2 py-1.5 text-sm text-slate-900 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100">
+            <option value="parse">Parse (cobol-transform parse)</option>
+            <option value="ast" selected>Dump AST (--dump-ast)</option>
+            <option value="symbols">Dump symbols (--dump-symbols)</option>
+            <option value="cfg">Dump CFG (--dump-cfg)</option>
+            <option value="tokens">Token stream (--diagnostics)</option>
+            <option value="generate">Generate COBOL (transform -p …)</option>
+            <option value="round-trip">Round-trip validation (round-trip)</option>
+            <option value="detect-format">Detect source format</option>
+            <option value="normalize-format">Normalize fixed/free format</option>
+          </select>
+        </label>
+        <button id="run" type="button" disabled
+          class="rounded-md bg-indigo-600 px-4 py-1.5 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500 disabled:cursor-not-allowed disabled:opacity-50">
+          Run <kbd class="ml-1 hidden rounded bg-indigo-500/60 px-1 text-[10px] font-normal sm:inline">Ctrl+Enter</kbd>
+        </button>
+      </div>
+
+      <fieldset class="flex flex-wrap items-center gap-x-5 gap-y-2 rounded-lg border border-slate-200 px-3 py-2 text-sm dark:border-slate-800">
+        <legend class="px-1 text-xs font-medium text-slate-600 dark:text-slate-400">Options</legend>
+        <div id="opt-passes" class="flex items-center gap-3">
+          <span class="text-xs text-slate-500 dark:text-slate-400">Passes</span>
+          <label class="flex items-center gap-1.5"><input type="checkbox" name="pass" value="normalize" class="accent-indigo-600"> normalize</label>
+          <label class="flex items-center gap-1.5"><input type="checkbox" name="pass" value="modernize" class="accent-indigo-600"> modernize</label>
+        </div>
+        <label id="opt-format" class="flex items-center gap-2">
+          <span class="text-xs text-slate-500 dark:text-slate-400">Format</span>
+          <select id="format"
+            class="rounded-md border border-slate-300 bg-white px-1.5 py-1 text-sm dark:border-slate-700 dark:bg-slate-900">
+            <option value="auto">auto-detect</option>
+            <option value="fixed">fixed</option>
+            <option value="free">free</option>
+          </select>
+        </label>
+        <label id="opt-normalize-first" class="flex items-center gap-1.5" title="Run FormatNormalizer before the preprocessor. The CLI does not do this.">
+          <input id="normalize-first" type="checkbox" class="accent-indigo-600"> normalize format before lexing
+        </label>
+        <label class="flex items-center gap-1.5">
+          <input id="auto-run" type="checkbox" checked class="accent-indigo-600"> run on edit
+        </label>
+      </fieldset>
+
+      <div id="error-box" role="alert"
+        class="hidden rounded-lg border border-rose-300 bg-rose-50 px-3 py-2 text-sm text-rose-900 dark:border-rose-800 dark:bg-rose-950/50 dark:text-rose-200">
+        <div class="flex flex-wrap items-baseline justify-between gap-2">
+          <p class="font-semibold"><span id="error-stage">parse</span> error<span id="error-pos"></span></p>
+          <button id="error-goto" type="button" class="hidden text-xs font-medium underline underline-offset-2">Go to line</button>
+        </div>
+        <p id="error-message" class="mt-1 break-words font-mono text-xs"></p>
+      </div>
+
+      <div id="diag-box" class="hidden rounded-lg border border-amber-300 bg-amber-50 px-3 py-2 text-xs text-amber-900 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-200">
+        <p class="font-semibold">Preprocessor diagnostics</p>
+        <ul id="diag-list" class="mt-1 list-disc space-y-0.5 pl-5 font-mono"></ul>
+      </div>
+
+      <div class="flex h-[26rem] min-w-0 flex-col overflow-hidden rounded-lg border border-slate-300 bg-white lg:h-[40rem] dark:border-slate-700 dark:bg-slate-900">
+        <div class="flex flex-wrap items-center justify-between gap-2 border-b border-slate-200 px-2 py-1.5 dark:border-slate-800">
+          <div id="view-tabs" role="tablist" class="flex gap-1 text-xs">
+            <button type="button" role="tab" data-view="tree" class="view-tab rounded px-2 py-1 font-medium">Tree</button>
+            <button type="button" role="tab" data-view="table" class="view-tab rounded px-2 py-1 font-medium">Table</button>
+            <button type="button" role="tab" data-view="raw" class="view-tab rounded px-2 py-1 font-medium">Raw</button>
+            <button type="button" role="tab" data-view="json" class="view-tab rounded px-2 py-1 font-medium">JSON</button>
+          </div>
+          <div class="flex items-center gap-1 text-xs">
+            <button id="expand-all" type="button" class="rounded px-2 py-1 hover:bg-slate-100 dark:hover:bg-slate-800">Expand</button>
+            <button id="collapse-all" type="button" class="rounded px-2 py-1 hover:bg-slate-100 dark:hover:bg-slate-800">Collapse</button>
+            <button id="copy-output" type="button" class="rounded px-2 py-1 hover:bg-slate-100 dark:hover:bg-slate-800">Copy</button>
+          </div>
+        </div>
+        <div id="output" class="code-metrics min-h-0 flex-1 overflow-auto p-3"></div>
+      </div>
+      <p id="status" class="text-xs text-slate-500 dark:text-slate-400">&nbsp;</p>
+    </section>
+  </main>
+
+  <footer class="mx-auto max-w-7xl px-4 pb-6 text-xs text-slate-500 dark:text-slate-400">
+    Every result above is produced by the Rust transformer in <code class="font-mono">cobol-transformer/</code> through the
+    wasm-bindgen wrapper in <code class="font-mono">web/wasm/</code>. COPY members cannot be resolved in the browser (no file system).
+  </footer>
+</body>
+</html>
