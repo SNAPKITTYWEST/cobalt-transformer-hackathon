@@ -85,8 +85,8 @@ try {
   const wasmMod = await WebAssembly.compile((await get('pkg/cobol_transformer_wasm_bg.wasm')).body);
   check(WebAssembly.Module.exports(wasmMod).length > 0, `served .wasm compiles (${WebAssembly.Module.exports(wasmMod).length} module exports)`);
 } finally {
-  server.close();
+  await new Promise(resolve => server.close(resolve));
 }
 
 console.log(failures ? `\n${failures} check(s) FAILED` : '\nall checks passed');
-process.exit(failures ? 1 : 0);
+process.exitCode = failures ? 1 : 0;

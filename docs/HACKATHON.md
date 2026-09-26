@@ -129,3 +129,9 @@ These are properties of the current transformer, shown as-is by the playground:
 - GitHub Pages: the repository is private on GitHub Free, so the Pages deploy
   in `.github/workflows/pages.yml` will not publish until the repository is made
   public or the account is upgraded. The built site is committed in `web/dist`.
+
+## Frontend debugging
+
+From web/, run npm run verify:browser (install Chromium once with npx playwright install chromium). This exercises Execute, keyboard execution, failed runtime downloads, missing samples, queued input and stale sample requests in a real browser. npm run verify checks the Wasm wrapper and static assets; its sample checks establish source fidelity, not that all sample dialects parse.
+
+Use npm run serve and open http://127.0.0.1:8080/?debug=1. A failed runtime download now reports Cannot execute rather than queuing forever. Failed or stale sample downloads preserve the editor. Compiler diagnostics remain visible separately from loading errors.

@@ -10,9 +10,11 @@
     "build:site": "node scripts/build-site.mjs",
     "build": "npm run build:wasm && npm run build:site && npm run build:css",
     "verify": "node scripts/verify.mjs",
-    "serve": "node scripts/serve.mjs"
+    "serve": "node scripts/serve.mjs",
+    "verify:browser": "node scripts/verify-browser.mjs"
   },
   "devDependencies": {
+    "@playwright/test": "^1.63.0",
     "@tailwindcss/cli": "^4.1.0",
     "tailwindcss": "^4.1.0"
   }

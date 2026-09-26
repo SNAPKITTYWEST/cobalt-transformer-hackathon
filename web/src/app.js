@@ -3,7 +3,7 @@
 // (web/wasm -> pkg/cobol_transformer_wasm.js). This file only wires controls
 // to `run(operation, source, optionsJson)` and renders the JSON it returns.
 
-import init, { run, version } from './pkg/cobol_transformer_wasm.js';
+let run; // Import inside boot so download failures reach the visible error UI.
 
 const $ = (id) => document.getElementById(id);
 const els = {
@@ -95,6 +95,9 @@ const VIEWS = {
 const FRONT_END_OPS = new Set(['parse', 'ast', 'symbols', 'cfg', 'generate', 'round-trip']);
 
 let ready = false;
+let runtimeError = null;
+let sampleRequest = 0;
+let sourceRevision = 0;
 let lastResult = null;
 let currentView = 'tree';
 let errorLine = null;
@@ -149,7 +152,7 @@ function gotoLine(line, column) {
 }
 
 els.source.addEventListener('scroll', () => { els.gutter.scrollTop = els.source.scrollTop; });
-els.source.addEventListener('input', () => { renderGutter(); updateCursor(); scheduleRun(); });
+els.source.addEventListener('input', () => { sourceRevision++; renderGutter(); updateCursor(); scheduleRun(); });
 els.source.addEventListener('click', updateCursor);
 els.source.addEventListener('keyup', updateCursor);
 els.source.addEventListener('keydown', (e) => {
@@ -177,12 +180,16 @@ document.addEventListener('keydown', (e) => {
 let samples = [];
 
 async function loadSamples() {
+  const revision = sourceRevision;
   try {
     const res = await fetch('./samples/samples.json');
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     samples = await res.json();
   } catch (e) {
     els.sample.replaceChildren(new Option('(samples unavailable)', ''));
+    dbg('samples-failed', String(e));
+    els.sampleNote.textContent = 'Samples unavailable. Paste COBOL source to continue.';
+    els.sampleNote.classList.remove('hidden');
     return;
   }
   const opts = [new Option('- paste your own -', '')];
@@ -194,24 +201,40 @@ async function loadSamples() {
   if (op && VIEWS[op]) { els.op.value = op; currentView = VIEWS[op][0]; syncOptions(); }
   const wanted = params.get('sample');
   els.sample.value = samples.some((s) => s.id === wanted) ? wanted : (samples[0]?.id ?? '');
-  await selectSample(els.sample.value);
+  if (sourceRevision === revision && !els.source.value.trim()) await selectSample(els.sample.value);
+  else { els.sample.value = ''; dbg('sample-preserved', 'keeping user input'); }
 }
 
 async function selectSample(id) {
+  const request = ++sampleRequest;
+  const revision = sourceRevision;
   const s = samples.find((x) => x.id === id);
   if (!s) { els.sampleNote.classList.add('hidden'); return; }
-  const res = await fetch(`./samples/${s.file}`);
-  const text = (await res.text()).replace(/\r\n?/g, '\n');
-  els.source.value = text;
-  els.source.setSelectionRange(0, 0);
-  els.fileName.value = s.path.split('/').pop();
-  els.source.scrollTop = 0;
-  els.sampleNote.textContent = `${s.path}${s.note ? ' - ' + s.note : ''}`;
-  els.sampleNote.classList.remove('hidden');
-  errorLine = null;
-  renderGutter();
-  updateCursor();
-  execute('sample');
+  try {
+    const res = await fetch('./samples/' + s.file);
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    const text = (await res.text()).replace(/\r\n?/g, '\n');
+    if (request !== sampleRequest || revision !== sourceRevision) {
+      dbg('sample-discarded', s.id);
+      return;
+    }
+    els.source.value = text;
+    sourceRevision++;
+    els.source.setSelectionRange(0, 0);
+    els.fileName.value = s.path.split('/').pop();
+    els.source.scrollTop = 0;
+    els.sampleNote.textContent = s.path + (s.note ? ' - ' + s.note : '');
+    els.sampleNote.classList.remove('hidden');
+    errorLine = null;
+    renderGutter();
+    updateCursor();
+    execute('sample');
+  } catch (e) {
+    if (request !== sampleRequest) return;
+    dbg('sample-failed', {sample: s.id, message: String(e)});
+    els.sampleNote.textContent = 'Could not load ' + s.label + ': ' + e + '. Your source has been kept.';
+    els.sampleNote.classList.remove('hidden');
+  }
 }
 
 els.sample.addEventListener('change', () => selectSample(els.sample.value));
@@ -260,6 +283,13 @@ let pendingRun = null;   // explicit run requested before wasm finished loading
 const history = [];      // { n, time, trigger, operation, ok, ms, summary, result }
 
 function runNow(trigger) {
+  if (runtimeError) {
+    pendingRun = null;
+    els.runLabel.textContent = 'Execute';
+    els.status.textContent = runtimeError;
+    dbg('execute-unavailable', runtimeError);
+    return;
+  }
   if (debounceTimer) {
     clearTimeout(debounceTimer);
     debounceTimer = null;
@@ -280,12 +310,18 @@ function runNow(trigger) {
   // setTimeout (not requestAnimationFrame): rAF is paused in hidden tabs and
   // background frames, which would leave the button stuck on "Running…".
   setTimeout(() => {
-    const done = execute(trigger);
-    els.run.removeAttribute('aria-busy');
-    els.runLabel.textContent = 'Execute';
-    if (done) {
-      recordHistory(trigger, done.result, done.ms);
-      flashOutput(done.result.ok);
+    try {
+      const done = execute(trigger);
+      if (done) {
+        recordHistory(trigger, done.result, done.ms);
+        flashOutput(done.result.ok);
+      }
+    } catch (e) {
+      dbg('render-failed', String(e));
+      els.status.textContent = 'Unable to display result: ' + e;
+    } finally {
+      els.run.removeAttribute('aria-busy');
+      els.runLabel.textContent = 'Execute';
     }
   }, 0);
 }
@@ -565,10 +601,12 @@ els.wasmStatus.classList.remove('hidden');
 dbg('boot', 'loading WebAssembly module');
 try {
   const tInit = performance.now();
-  await init();
+  const wasm = await import('./pkg/cobol_transformer_wasm.js');
+  await wasm.default();
+  run = wasm.run;
   ready = true;
   dbg('wasm-ready', `${(performance.now() - tInit).toFixed(1)} ms`);
-  const v = JSON.parse(version());
+  const v = JSON.parse(wasm.version());
   els.wasmStatus.textContent = `wasm ready, wrapper v${v.wrapper}`;
   els.wasmStatus.className = 'hidden rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-medium text-emerald-800 sm:inline dark:bg-emerald-900/40 dark:text-emerald-300';
 
@@ -576,7 +614,8 @@ try {
   dbg('wasm-failed', String(e));
   pendingRun = null;
   els.runLabel.textContent = 'Execute';
-  els.status.textContent = `Cannot execute: the WebAssembly module failed to load (${e}). Serve web/dist over http, not file://.`;
+  runtimeError = 'Cannot execute: WebAssembly failed to load (' + e + '). Reload the page or serve web/dist over HTTP.';
+  els.status.textContent = runtimeError;
   els.wasmStatus.textContent = 'wasm failed to load';
   els.wasmStatus.className = 'rounded-full bg-rose-100 px-2 py-0.5 text-xs font-medium text-rose-800 dark:bg-rose-900/40 dark:text-rose-300';
   els.output.replaceChildren(placeholder(`Could not load the WebAssembly module: ${e}`));
