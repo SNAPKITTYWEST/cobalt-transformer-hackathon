@@ -4,3 +4,14 @@ web/wasm/target/
 web/wasm/pkg/
 # Rust build output for the transformer crate
 cobol-transformer/target/
+
+# IBM service: Rust facts binary, Python venv, local data, secrets
+facts/target/
+service/.venv/
+service/.data/
+.env
+*.env.local
+__pycache__/
+*.pyc
+.pytest_cache/
+orchestrate/.venv/

@@ -11,5 +11,6 @@ pub mod codegen;
 pub mod diagnostics;
 pub mod source_map;
 pub mod format;
+pub mod ibm;
 
 // Made with Bob
