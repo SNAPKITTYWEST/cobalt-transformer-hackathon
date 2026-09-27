@@ -657,7 +657,6 @@ TRITON represents a new approach to COBOL modernization: preserve the investment
 
 ## Contact & Resources
 
-**Project Repository**: https://github.com/your-org/sovereign-engine-v2  
 **Documentation**: See `IBM_CLOUD_INTEGRATION.md`  
 **Demo**: `cargo run --example ibm_integration_demo`  
 **Support**: Open an issue on GitHub
