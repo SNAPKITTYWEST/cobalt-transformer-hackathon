@@ -104,15 +104,3 @@ and deploys `web/dist` to GitHub Pages on pushes to `main` that touch
 (Actions → "Web playground (GitHub Pages)" → Run workflow). The live demo is at
 **https://snapkittywest.github.io/cobalt-transformer-hackathon/**.
 
-## What's honestly incomplete
-
-Stated here, not discovered by a judge later — full detail in
-[SUBMISSION.md](SUBMISSION.md#whats-honestly-incomplete):
-
-1. 4 of 7 samples in the playground stop at the lexer on real syntax it
-   doesn't handle yet (`=`, `<`, a non-ASCII comment character) — kept in the
-   demo on purpose, not cherry-picked away.
-2. GPU-COBOL's PTX emitter produces syntactically valid but not
-   execution-correct output.
-3. The IBM watsonx backend needs live credentials this machine doesn't have.
-4. No LICENSE file yet (MIT intended — see [SUBMISSION.md](SUBMISSION.md#license)).
