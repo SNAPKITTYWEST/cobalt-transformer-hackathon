@@ -15,3 +15,5 @@ __pycache__/
 *.pyc
 .pytest_cache/
 orchestrate/.venv/
+
+target/
