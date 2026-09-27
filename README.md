@@ -1,25 +1,48 @@
-# Cobalt COBOL Transformer
+# Cobalt — a COBOL transformer, running live in your browser
 
-**Start here:** [SUBMISSION.md](SUBMISSION.md) — what this project is, what
-works, what's honestly incomplete, and the live demo link. This README is the
-repository layout reference; `SUBMISSION.md` is the narrative entry point.
+**[Try it now — no install, no signup](https://snapkittywest.github.io/cobalt-transformer-hackathon/)**
 
-## Layout
+Most "COBOL modernization" hackathon entries send raw source text into a
+general-purpose language model and hope. IBM's own research says as much:
+there is no public, hackathon-ready COBOL parsing API, so the default path is
+"paste COBOL into a chatbot." Cobalt takes the other path — it runs a **real,
+hand-written COBOL parser** (lexer → parser → AST → symbol table → control-flow
+graph) first, and only then hands the model something worth reasoning over:
+actual paragraph names, actual data items, actual structure.
+
+That parser is compiled to WebAssembly and running **right now** in the page
+linked above — pick a sample or paste your own COBOL, and watch the real
+parser tokenize, parse, and analyze it client-side. Nothing is faked and
+nothing is server-side; the browser is doing the work.
+
+## The four pieces
+
+| | What it is | Status |
+|---|---|---|
+| **[Rust COBOL parser](docs/IBM-BACKEND.md)** (`cobol-transformer/`) | Lexer, parser, AST, symbol table, type system, CFG, dataflow, codegen | Builds clean, tests pass |
+| **[Web playground](docs/HACKATHON.md)** (`web/`) | The parser compiled to WebAssembly behind a Tailwind UI | **Live**, verified end to end |
+| **[watsonx.ai backend](docs/IBM-BACKEND.md)** (`cobol-transformer/src/ibm/`, `service/`) | Grounds IBM Granite explanations/translations in real parser output, not raw text | Rust side: 11/11 tests pass. Python service: written, needs credentials |
+| **[GPU-COBOL](docs/GPU-COBOL.md)** (`gpu-cobol/`) | A second, independent compiler — COBOL syntax targeting GPU kernels, emitting PTX | Lexer→parser→AST→IR all correct; PTX emitter has known bugs, documented not hidden |
+
+Full pitch, architecture, and an honest list of what's incomplete:
+**[SUBMISSION.md](SUBMISSION.md)**.
+
+## Repository layout
 
 | Path | Contents |
 |---|---|
-| `cobol-transformer/` | Bob's Rust COBOL transformer: lexer, parser, AST, codegen, CLI, analysis modules (symbols, types, CFG, dataflow, transforms), and `src/ibm/` (watsonx.ai/Object Storage/Code Engine client). Build with `cargo build`. See [docs/IBM-BACKEND.md](docs/IBM-BACKEND.md). |
+| `cobol-transformer/` | The Rust COBOL parser: lexer, parser, AST, codegen, CLI, analysis modules (symbols, types, CFG, dataflow, transforms), and `src/ibm/` (watsonx.ai/Object Storage/Code Engine client). Build with `cargo build`. See [docs/IBM-BACKEND.md](docs/IBM-BACKEND.md). |
 | `gpu-cobol/` | A second, independent compiler: a COBOL-syntax dialect for GPU kernels, hand-written in C, emitting PTX. See [docs/GPU-COBOL.md](docs/GPU-COBOL.md). |
-| `cobalt/` | Cobalt, the hand-rolled Haskell compiler, plus `REQPARSE.cbl` (HTTP request-line nugget N07), `bank-suite/`, and an `attention/` kernel implementation. |
+| `cobalt/` | A hand-rolled Haskell COBOL compiler, plus `REQPARSE.cbl` (HTTP request-line nugget N07), `bank-suite/`, and an `attention/` kernel implementation. |
 | `sources/` | 37 real COBOL programs collected from other projects, stored under their original absolute paths (`sources/C/...`, `sources/D/...`), used as a test corpus. Cataloged in [docs/COBOL-PROGRAMS.md](docs/COBOL-PROGRAMS.md). |
-| `web/` | Browser playground: `cobol-transformer` compiled to WebAssembly (`web/wasm/`, wasm-bindgen) with a Tailwind UI (`web/src/`). Built site in `web/dist/`, live at the [GitHub Pages demo](#web-playground). See [docs/HACKATHON.md](docs/HACKATHON.md). |
+| `web/` | Browser playground: `cobol-transformer` compiled to WebAssembly (`web/wasm/`, wasm-bindgen) with a Tailwind UI (`web/src/`). Built site in `web/dist/`, live at the [GitHub Pages demo](#build-and-run-the-web-playground). See [docs/HACKATHON.md](docs/HACKATHON.md). |
 | `facts/`, `service/` | The Python/FastAPI half of the IBM backend: a Rust "facts" bridge plus a service that grounds watsonx.ai prompts on real parser output. Not yet run end to end. See [docs/IBM-BACKEND.md](docs/IBM-BACKEND.md). |
 | `transformer/` | An earlier, superseded copy of the transformer at its original mirrored path, kept for the collection's provenance. Not part of the working submission — use `cobol-transformer/`. |
 | `MANIFEST.csv` | Every collected file: source path, repo path, size, SHA-256, last write time, and whether it was copied or was a duplicate of an earlier copy. |
 | `docs/` | All project documentation — see the map in [SUBMISSION.md](SUBMISSION.md#documentation-map). |
 | `reference/` | Two **other** hackathon submissions, kept only for comparison — not part of this project's build. See [reference/README.md](reference/README.md). |
 
-## Web playground
+## Build and run the web playground
 
 `web/` runs the real Rust transformer in the browser. The `cobol-transformer`
 library is compiled to WebAssembly through a small wasm-bindgen wrapper
@@ -80,3 +103,16 @@ and deploys `web/dist` to GitHub Pages on pushes to `main` that touch
 `cobol-transformer/`, `web/` or the workflow, and on manual runs
 (Actions → "Web playground (GitHub Pages)" → Run workflow). The live demo is at
 **https://snapkittywest.github.io/cobalt-transformer-hackathon/**.
+
+## What's honestly incomplete
+
+Stated here, not discovered by a judge later — full detail in
+[SUBMISSION.md](SUBMISSION.md#whats-honestly-incomplete):
+
+1. 4 of 7 samples in the playground stop at the lexer on real syntax it
+   doesn't handle yet (`=`, `<`, a non-ASCII comment character) — kept in the
+   demo on purpose, not cherry-picked away.
+2. GPU-COBOL's PTX emitter produces syntactically valid but not
+   execution-correct output.
+3. The IBM watsonx backend needs live credentials this machine doesn't have.
+4. No LICENSE file yet (MIT intended — see [SUBMISSION.md](SUBMISSION.md#license)).
