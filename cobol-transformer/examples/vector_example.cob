@@ -1,0 +1,28 @@
+       IDENTIFICATION DIVISION.
+       PROGRAM-ID. VECTOR-EXAMPLE.
+       
+       DATA DIVISION.
+       WORKING-STORAGE SECTION.
+       01 CUSTOMER-TABLE.
+          05 CUSTOMER-RECORD OCCURS 1000 TIMES INDEXED BY I.
+             10 CUSTOMER-ID       PIC 9(8).
+             10 BALANCE           PIC 9(7)V99 COMP-3.
+             10 INTEREST-RATE     PIC 9V9999 COMP-3.
+             10 NEW-BALANCE       PIC 9(7)V99 COMP-3.
+       
+       01 COUNTERS.
+          05 TOTAL-CUSTOMERS      PIC 9(8) VALUE 1000.
+          05 PROCESSED-COUNT      PIC 9(8) VALUE 0.
+       
+       PROCEDURE DIVISION.
+       MAIN-PARA.
+           PERFORM VARYING I FROM 1 BY 1 UNTIL I > TOTAL-CUSTOMERS
+               COMPUTE NEW-BALANCE(I) = 
+                   BALANCE(I) * (1 + INTEREST-RATE(I))
+               ADD 1 TO PROCESSED-COUNT
+           END-PERFORM.
+           
+           DISPLAY "PROCESSED " PROCESSED-COUNT " CUSTOMERS".
+           STOP RUN.
+
+      *> Made with Bob

@@ -25,6 +25,8 @@ petgraph = "0.6"
 logos = "0.14"
 codespan-reporting = "0.11"
 unicode-width = "0.1"
+
+# IBM Cloud Integration
 reqwest = { version = "0.11", features = ["json"] }
 tokio = { version = "1.35", features = ["full"] }
 
