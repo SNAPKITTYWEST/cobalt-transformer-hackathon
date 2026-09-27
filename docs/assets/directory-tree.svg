@@ -1,0 +1,81 @@
+<svg viewBox="0 0 700 500" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <style>
+      :root {
+        --text: #1a1a1a;
+        --muted: #666;
+        --tree-line: #ddd;
+      }
+      @media (prefers-color-scheme: dark) {
+        :root {
+          --text: #f0f0f0;
+          --muted: #999;
+          --tree-line: #444;
+        }
+      }
+      .tree-item { fill: var(--text); font-family: 'Courier New', monospace; font-size: 13px; }
+      .tree-muted { fill: var(--muted); font-size: 12px; }
+      .tree-line { stroke: var(--tree-line); stroke-width: 1; fill: none; }
+    </style>
+  </defs>
+
+  <text x="20" y="25" class="tree-item">📦 cobalt-transformer-hackathon/</text>
+
+  <line x1="30" y1="30" x2="30" y2="480" class="tree-line" />
+  <line x1="30" y1="40" x2="50" y2="40" class="tree-line" />
+  <text x="60" y="45" class="tree-item">📁 cobalt/</text>
+  <text x="80" y="60" class="tree-muted">Haskell compiler (8.2K lines)</text>
+
+  <line x1="30" y1="40" x2="30" y2="120" class="tree-line" />
+  <line x1="30" y1="90" x2="50" y2="90" class="tree-line" />
+  <text x="60" y="95" class="tree-item">📁 cobol-transformer/</text>
+  <text x="80" y="110" class="tree-muted">Rust parser + IBM (12.4K lines)</text>
+
+  <line x1="30" y1="90" x2="30" y2="180" class="tree-line" />
+  <line x1="30" y1="170" x2="50" y2="170" class="tree-line" />
+  <text x="60" y="175" class="tree-item">📁 gpu-cobol/</text>
+  <text x="80" y="190" class="tree-muted">C GPU compiler (4.8K lines)</text>
+
+  <line x1="30" y1="170" x2="30" y2="260" class="tree-line" />
+  <line x1="30" y1="210" x2="50" y2="210" class="tree-line" />
+  <text x="60" y="215" class="tree-item">📁 web/</text>
+  <text x="80" y="230" class="tree-muted">WebAssembly (1.3K + dist/)</text>
+
+  <line x1="30" y1="210" x2="30" y2="300" class="tree-line" />
+  <line x1="30" y1="290" x2="50" y2="290" class="tree-line" />
+  <text x="60" y="295" class="tree-item">📁 sources/</text>
+  <text x="80" y="310" class="tree-muted">31 COBOL programs (corpus)</text>
+
+  <line x1="30" y1="290" x2="30" y2="380" class="tree-line" />
+  <line x1="30" y1="340" x2="50" y2="340" class="tree-line" />
+  <text x="60" y="345" class="tree-item">📁 docs/</text>
+  <text x="80" y="360" class="tree-muted">24 reference docs (7.1K)</text>
+
+  <line x1="30" y1="340" x2="30" y2="420" class="tree-line" />
+  <line x1="30" y1="400" x2="50" y2="400" class="tree-line" />
+  <text x="60" y="405" class="tree-item">📁 .github/workflows/</text>
+  <text x="80" y="420" class="tree-muted">GitHub Pages auto-deploy</text>
+
+  <line x1="30" y1="400" x2="30" y2="480" class="tree-line" />
+  <line x1="30" y1="430" x2="50" y2="430" class="tree-line" />
+  <text x="60" y="435" class="tree-item">README.md</text>
+  <line x1="30" y1="430" x2="50" y2="450" class="tree-line" />
+  <text x="60" y="455" class="tree-item">SUBMISSION.md</text>
+  <line x1="30" y1="450" x2="50" y2="470" class="tree-line" />
+  <text x="60" y="475" class="tree-item">MANIFEST.csv</text>
+
+  <rect x="400" y="20" width="280" height="200" fill="none" stroke="var(--tree-line)" stroke-width="1" rx="4" />
+  <text x="420" y="45" class="tree-item" style="font-weight: bold;">Code Statistics</text>
+  
+  <text x="420" y="70" class="tree-item">54 Rust files</text>
+  <text x="430" y="85" class="tree-muted">Lexer, Parser, AST, Codegen</text>
+
+  <text x="420" y="110" class="tree-item">53 COBOL files</text>
+  <text x="430" y="125" class="tree-muted">Corpus + test programs</text>
+
+  <text x="420" y="150" class="tree-item">26 Haskell files</text>
+  <text x="430" y="165" class="tree-muted">Hand-rolled compiler</text>
+
+  <text x="420" y="190" class="tree-item">18 C/Header files</text>
+  <text x="430" y="205" class="tree-muted">GPU-COBOL compiler</text>
+</svg>

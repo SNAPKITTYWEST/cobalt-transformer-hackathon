@@ -1,0 +1,82 @@
+<svg viewBox="0 0 1000 300" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <style>
+      :root {
+        --text-primary: #1a1a1a;
+        --bg-box: #f5f5f5;
+        --border: #ddd;
+        --accent: #0066cc;
+      }
+      @media (prefers-color-scheme: dark) {
+        :root {
+          --text-primary: #f0f0f0;
+          --bg-box: #2a2a2a;
+          --border: #444;
+          --accent: #66b3ff;
+        }
+      }
+      .box {
+        fill: var(--bg-box);
+        stroke: var(--border);
+        stroke-width: 2;
+      }
+      .arrow {
+        fill: none;
+        stroke: var(--text-primary);
+        stroke-width: 2;
+        marker-end: url(#arrowhead);
+      }
+      .label {
+        fill: var(--text-primary);
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+        font-size: 14px;
+        font-weight: 500;
+        text-anchor: middle;
+      }
+      .title {
+        fill: var(--text-primary);
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+        font-size: 12px;
+        text-anchor: middle;
+      }
+    </style>
+    <marker id="arrowhead" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto">
+      <polygon points="0 0, 10 3, 0 6" fill="var(--text-primary)" />
+    </marker>
+  </defs>
+
+  <rect x="30" y="100" width="100" height="100" rx="8" class="box" />
+  <rect x="170" y="100" width="100" height="100" rx="8" class="box" />
+  <rect x="310" y="100" width="100" height="100" rx="8" class="box" />
+  <rect x="450" y="100" width="100" height="100" rx="8" class="box" />
+  <rect x="590" y="100" width="140" height="100" rx="8" class="box" />
+  <rect x="780" y="100" width="140" height="100" rx="8" class="box" />
+
+  <text x="80" y="145" class="label">COBOL</text>
+  <text x="80" y="165" class="title">Source</text>
+
+  <text x="220" y="145" class="label">LEXER</text>
+  <text x="220" y="165" class="title">Tokenize</text>
+
+  <text x="360" y="145" class="label">PARSER</text>
+  <text x="360" y="165" class="title">Build AST</text>
+
+  <text x="500" y="145" class="label">SEMANTIC</text>
+  <text x="500" y="165" class="title">Symbols+CFG</text>
+
+  <text x="660" y="145" class="label">CODEGEN</text>
+  <text x="660" y="165" class="title">IR or Target</text>
+
+  <text x="850" y="145" class="label">OUTPUT</text>
+  <text x="850" y="170" class="title">WebAssembly</text>
+  <text x="850" y="185" class="title">Rust / PTX / IR</text>
+
+  <path d="M 130 150 L 170 150" class="arrow" />
+  <path d="M 270 150 L 310 150" class="arrow" />
+  <path d="M 410 150 L 450 150" class="arrow" />
+  <path d="M 550 150 L 590 150" class="arrow" />
+  <path d="M 730 150 L 780 150" class="arrow" />
+
+  <text x="220" y="240" class="title" style="fill: #cc6600;">Known gap: =, &lt;, em-dash</text>
+  <text x="660" y="240" class="title" style="fill: #cc6600;">GPU PTX: type/param bugs</text>
+</svg>
