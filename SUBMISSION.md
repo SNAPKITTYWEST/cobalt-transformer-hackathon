@@ -78,6 +78,7 @@ Stated up front, not discovered by a judge later:
 | [docs/IBM-HACKATHON-FIELD-GUIDE.md](docs/IBM-HACKATHON-FIELD-GUIDE.md) | The IBM service research this submission's architecture is built against |
 | [docs/HANDOFF.md](docs/HANDOFF.md) | Working notes for continuing this project: open tasks, repo state, verified commits |
 | [docs/MASTER-PROMPT-byox-mxml-nuggets.md](docs/MASTER-PROMPT-byox-mxml-nuggets.md) | A separate, exploratory spec (COBOL-tutorial training corpus) not yet built; unrelated to the hackathon submission itself |
+| [reference/README.md](reference/README.md) | Two other hackathon submissions kept for comparison, and an honest scoring of all three against each other |
 
 ## License
 

@@ -17,6 +17,7 @@ repository layout reference; `SUBMISSION.md` is the narrative entry point.
 | `transformer/` | An earlier, superseded copy of the transformer at its original mirrored path, kept for the collection's provenance. Not part of the working submission — use `cobol-transformer/`. |
 | `MANIFEST.csv` | Every collected file: source path, repo path, size, SHA-256, last write time, and whether it was copied or was a duplicate of an earlier copy. |
 | `docs/` | All project documentation — see the map in [SUBMISSION.md](SUBMISSION.md#documentation-map). |
+| `reference/` | Two **other** hackathon submissions, kept only for comparison — not part of this project's build. See [reference/README.md](reference/README.md). |
 
 ## Web playground
 
